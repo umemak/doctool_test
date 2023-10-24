@@ -5,8 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'upload_file.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
+  await dotenv.load(fileName: '.env');
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
   final String? token = prefs.getString('token');
@@ -50,8 +52,7 @@ class _LoginPageState extends State<LoginPage> {
 
   void login(String email, password) async {
     Response response = await post(
-      Uri.parse(
-          'https://17fbg3o4zf.execute-api.ap-northeast-1.amazonaws.com/Prod/v1/login'),
+      Uri.parse(dotenv.get('LOGIN_SERVER')),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -184,7 +185,7 @@ class _TopPageState extends State<TopPage> {
       ),
       body: FutureBuilder(
         future: get(
-          Uri.parse('http://localhost:8000/articles'),
+          Uri.parse('${dotenv.get('API_SERVER')}/articles'),
           headers: <String, String>{'accept': 'application/json'},
         ),
         builder: (BuildContext context, AsyncSnapshot snapshot) {
@@ -241,8 +242,8 @@ class _DetailPageState extends State<DetailPage> {
       body: Center(
         // S3から取得したテキストファイルを表示する
         child: FutureBuilder(
-          future:
-              get(Uri.parse('http://localhost:8000/articles/${widget.uuid}')),
+          future: get(
+              Uri.parse('${dotenv.get('API_SERVER')}/articles/${widget.uuid}')),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
             if (snapshot.hasData) {
               return Text(snapshot.data.body.toString());
