@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'upload_file.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  final String? token = prefs.getString('token');
+  runApp(MyApp(token: token));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String? token;
+  const MyApp({Key? key, this.token}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -13,113 +23,294 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      // Login Page
+      home: token == null
+          ? const LoginPage()
+          : const TopPage(
+              title: "Flutter Demo Home Page",
+            ),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _LoginPageState extends State<LoginPage> {
+  final Color _backgroundColor = Colors.white;
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void login(String email, password) async {
+    Response response = await post(
+      Uri.parse(
+          'https://17fbg3o4zf.execute-api.ap-northeast-1.amazonaws.com/Prod/v1/login'),
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{'email': email, 'password': password}),
+    );
+
+    if (response.statusCode == 200) {
+      var data = jsonDecode(response.body.toString());
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('token', data['token']);
+      // ignore: use_build_context_synchronously
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const TopPage(
+            title: 'Flutter Demo Home Page',
+          ),
+        ),
+      );
+    } else {
+      // ignore: use_build_context_synchronously
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Error'),
+          content: Text(response.body.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      backgroundColor: _backgroundColor,
+      body: SafeArea(
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
+          children: [
+            const SizedBox(height: 32),
             const Text(
-              'You have pushed the button this many times:',
+              'Welcome',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            const SizedBox(height: 32),
+            const Text(
+              'Please sign in to continue',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 32),
+            TextFormField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                hintText: 'Email',
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                hintText: 'Password',
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () =>
+                  {login(emailController.text, passwordController.text)},
+              child: const Text('Sign In'),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class TopPage extends StatefulWidget {
+  final String title;
+  const TopPage({Key? key, required this.title}) : super(key: key);
+
+  @override
+  State<TopPage> createState() => _TopPageState();
+}
+
+class _TopPageState extends State<TopPage> {
+  @override
+  Widget build(BuildContext context) {
+    // 記事一覧を表示する
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          // マイページに遷移するボタンを表示する
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () => {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const MyPage(),
+                ),
+              ),
+            },
+          ),
+          // ログアウトボタンを表示する
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.remove('token');
+              // ignore: use_build_context_synchronously
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => const LoginPage(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: FutureBuilder(
+        future: get(
+          Uri.parse('http://localhost:8000/articles'),
+          headers: <String, String>{
+            'accept': 'application/json'
+          },
+        ),
+        // ダミーデータを返す
+        // future: Future.delayed(
+        //   const Duration(seconds: 1),
+        //   () => Response(
+        //     '[{"title": "title1", "body": "body1", "link": ""}, {"title": "title2", "body": "body2", "link": ""}, {"title": "title3", "body": "body3", "link": ""}, {"title": "title4", "body": "body4", "link": ""}, {"title": "title5", "body": "body5", "link": ""}, {"title": "title6", "body": "body6", "link": ""}, {"title": "title7", "body": "body7", "link": ""}, {"title": "title8", "body": "body8", "link": ""}, {"title": "title9", "body": "body9", "link": ""}, {"title": "title10", "body": "body10", "link": ""}]',
+        //     200,
+        //   ),
+        // ),
+        builder: (BuildContext context, AsyncSnapshot snapshot) {
+          if (snapshot.hasData) {
+            var data = jsonDecode(snapshot.data.body.toString());
+            print(data);
+            return ListView.builder(
+              itemCount: data.length,
+              itemBuilder: (BuildContext context, int index) {
+                return ListTile(
+                  title: Text(data[index]['title']),
+                  subtitle: Text(data[index]['body']),
+                  // リンク先に遷移するボタンを表示する
+                  trailing: IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios),
+                    onPressed: () => {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              DetailPage(link: data[index]['link']),
+                        ),
+                      ),
+                    },
+                  ),
+                );
+              },
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+class DetailPage extends StatefulWidget {
+  final String? link;
+  const DetailPage({Key? key, this.link}) : super(key: key);
+
+  @override
+  State<DetailPage> createState() => _DetailPageState();
+}
+
+class _DetailPageState extends State<DetailPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detail'),
+      ),
+      body: Center(
+        // S3から取得したテキストファイルを表示する
+        child: FutureBuilder(
+          future: get(Uri.parse(widget.link!)),
+          builder: (BuildContext context, AsyncSnapshot snapshot) {
+            if (snapshot.hasData) {
+              return Text(snapshot.data.body.toString());
+            } else {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class MyPage extends StatefulWidget {
+  const MyPage({Key? key}) : super(key: key);
+
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+class _MyPageState extends State<MyPage> {
+  String? filename;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Page'),
+      ),
+      body: Center(
+          child: Column(
+        children: [
+          // ファイルセレクターを表示する
+          ElevatedButton(
+            onPressed: () async {
+              File file = await FilePicker.platform.pickFiles().then((value) {
+                return File(value!.files.single.path!);
+              });
+              setState(() {
+                filename = file.path;
+              });
+            },
+            child: const Text('Select File'),
+          ),
+          // タイトルを入力するテキストフィールドを表示する
+          const TextField(),
+          // アップロードボタンを表示する
+          ElevatedButton(
+            onPressed: () {
+              if (filename != null) {
+                uploadFile(filename!);
+              }
+            },
+            child: const Text('Upload'),
+          ),
+        ],
+      )),
     );
   }
 }
