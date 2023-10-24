@@ -185,18 +185,8 @@ class _TopPageState extends State<TopPage> {
       body: FutureBuilder(
         future: get(
           Uri.parse('http://localhost:8000/articles'),
-          headers: <String, String>{
-            'accept': 'application/json'
-          },
+          headers: <String, String>{'accept': 'application/json'},
         ),
-        // ダミーデータを返す
-        // future: Future.delayed(
-        //   const Duration(seconds: 1),
-        //   () => Response(
-        //     '[{"title": "title1", "body": "body1", "link": ""}, {"title": "title2", "body": "body2", "link": ""}, {"title": "title3", "body": "body3", "link": ""}, {"title": "title4", "body": "body4", "link": ""}, {"title": "title5", "body": "body5", "link": ""}, {"title": "title6", "body": "body6", "link": ""}, {"title": "title7", "body": "body7", "link": ""}, {"title": "title8", "body": "body8", "link": ""}, {"title": "title9", "body": "body9", "link": ""}, {"title": "title10", "body": "body10", "link": ""}]',
-        //     200,
-        //   ),
-        // ),
         builder: (BuildContext context, AsyncSnapshot snapshot) {
           if (snapshot.hasData) {
             var data = jsonDecode(snapshot.data.body.toString());
@@ -206,7 +196,7 @@ class _TopPageState extends State<TopPage> {
               itemBuilder: (BuildContext context, int index) {
                 return ListTile(
                   title: Text(data[index]['title']),
-                  subtitle: Text(data[index]['body']),
+                  subtitle: Text(data[index]['description']),
                   // リンク先に遷移するボタンを表示する
                   trailing: IconButton(
                     icon: const Icon(Icons.arrow_forward_ios),
@@ -214,7 +204,7 @@ class _TopPageState extends State<TopPage> {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) =>
-                              DetailPage(link: data[index]['link']),
+                              DetailPage(uuid: data[index]['uuid']),
                         ),
                       ),
                     },
@@ -234,8 +224,8 @@ class _TopPageState extends State<TopPage> {
 }
 
 class DetailPage extends StatefulWidget {
-  final String? link;
-  const DetailPage({Key? key, this.link}) : super(key: key);
+  final String? uuid;
+  const DetailPage({Key? key, this.uuid}) : super(key: key);
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -251,7 +241,8 @@ class _DetailPageState extends State<DetailPage> {
       body: Center(
         // S3から取得したテキストファイルを表示する
         child: FutureBuilder(
-          future: get(Uri.parse(widget.link!)),
+          future:
+              get(Uri.parse('http://localhost:8000/articles/${widget.uuid}')),
           builder: (BuildContext context, AsyncSnapshot snapshot) {
             if (snapshot.hasData) {
               return Text(snapshot.data.body.toString());

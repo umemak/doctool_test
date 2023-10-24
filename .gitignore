@@ -35,3 +35,9 @@ node_modules
 # CDK asset staging directory
 .cdk.staging
 cdk.out
+
+# minio
+docker/minio/data/.minio.sys/*
+
+# vscode
+.vscode/*
