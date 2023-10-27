@@ -7,6 +7,10 @@ from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import Column, Integer, String, Boolean
 import uuid
+import requests
+import json
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
 
@@ -24,6 +28,7 @@ class ArticleSchema(BaseModel):
     uuid: str
     title: str
     description: str
+    author: str
     url: str
     allow_external: bool
 
@@ -34,6 +39,7 @@ class ArticleModel(Base):
     uuid = Column(String(36), unique=True, nullable=False)
     title = Column(String(255))
     description = Column(String(255))
+    author = Column(String(255))
     url = Column(String(255))
     allow_external = Column(Boolean, default=False)
 
@@ -87,3 +93,18 @@ async def create_article(
 @app.get("/articles/{article_id}")
 async def get_article(article_id: str, db: Session = Depends(get_db)) -> ArticleSchema:
     return db.query(ArticleModel).filter(ArticleModel.uuid == article_id).first()
+
+class LoginResponse(BaseModel):
+    token: str
+
+@app.post("/login")
+async def login(email: str = Form(None), password: str = Form(None)) -> LoginResponse:
+    load_dotenv()
+    login_url = os.getenv("LOGIN_URL")
+    headers = {"Content-Type": "application/json"}
+    data = {"email": email, "password": password, "app_key": os.getenv("APP_KEY")}
+    r = requests.post(login_url, headers=headers, data=json.dumps(data))
+    print(r.url)
+    data = r.json()
+    print(data)
+    return LoginResponse(token=data["token"])

@@ -52,11 +52,14 @@ class _LoginPageState extends State<LoginPage> {
 
   void login(String email, password) async {
     Response response = await post(
-      Uri.parse(dotenv.get('LOGIN_SERVER')),
+      Uri.parse("${dotenv.get('API_SERVER')}/login"),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
-      body: jsonEncode(<String, String>{'email': email, 'password': password}),
+      body: jsonEncode(<String, String>{
+        'email': email,
+        'password': password,
+      }),
     );
 
     if (response.statusCode == 200) {

@@ -2,7 +2,7 @@
 up:
 	docker compose up -d --remove-orphans
 	"$(MAKE)" migrate
-	"$(MAKE)" app
+	# "$(MAKE)" app
 
 .PHONY: down
 down:
@@ -15,3 +15,7 @@ app:
 .PHONY: migrate
 migrate:
 	docker compose exec api bash -c "poetry run python -m migrate_db"
+
+.PHONY: restart_app
+restart_app:
+	docker compose restart app
