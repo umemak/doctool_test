@@ -19,3 +19,7 @@ migrate:
 .PHONY: restart_app
 restart_app:
 	docker compose restart app
+
+.PHONY: app_svelte
+app_svelte:
+	cd app_svelte && npm run dev
